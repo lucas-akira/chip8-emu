@@ -53,13 +53,14 @@ void emulateCycle(Chip8 *chip) {
 		case 0x0000: /* 3 possibilities */
 			switch (opcode & 0x00FF) {
 				case 0x00E0: /* Clear the screen (0x00E0) */
-					/*TODO*/
-					printf("Should clear the screen\n");
+					for (loop = 0; loop < WIDTH * HEIGHT; loop++) {
+						chip->gfx[loop] = 0;
+					}
 					pc += 2;
 					break;
 
 				case 0x00EE: /* Return from a subroutine */
-					/*TODO*/
+					pc = chip->stack[chip->sp];
 					pc += 2;
 					break;
 
@@ -74,7 +75,9 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0x2000: /* Call subroutine at NNN */
-			/*TODO*/
+			chip->stack[chip->sp] = pc;
+			(chip->sp)++;
+			pc = opcode & 0x0FFF;
 			break;
 
 		case 0x3000: /* 0x3XNN -- if (VX == NN): skip next instruction */
@@ -208,14 +211,35 @@ void emulateCycle(Chip8 *chip) {
 
 		case 0xC000: /* 0xCXNN -- VX = rand() & NN */
 			/*TODO rand*/
+			srand(time(NULL));
+			V[x] = (rand() % 256) & (opcode & 0x00FF);
 			pc += 2;
 			break;
 
 		case 0xD000: /* 0xDXYN -- draw(VX, VY, N): draw a sprite at (VX, VY) with 8px wide and Npx tall; each row of 8px is read as bit-coded starting from memory location index_reg */
-			/*TODO*/
+		{	
+			unsigned char height = (opcode & 0x000F);
+			unsigned char sprite_row;
+			unsigned char xline = 0, yline = 0;
+			V[0xF] = 0;
+			for (yline = 0; yline < height; yline++) { /* For each sprite row */
+
+				sprite_row = memory[chip->index_reg + yline]; /* Get sprite row */
+				for (xline = 0; xline < 8; xline++) { /* For each pixel in the row */
+
+					if ( (sprite_row & (0x80 >> xline)) != 0 ) { /* Check if the current evaluated pixel is set to 1 */
+						unsigned char x_pos = (x + xline) % WIDTH;
+						unsigned char y_pos = (y + yline) % HEIGHT;
+						if (chip->gfx[x_pos + (y_pos * WIDTH)] == 1 ) /* Check if the pixel on display is set to 1 */
+							V[0xF] = 1; /* Pixel collision occured */
+						chip->gfx[x_pos + (y_pos * WIDTH)] ^= 1;
+					}
+				}
+			}
+			chip->update_screen = 1;
 			pc += 2;
 			break;
-
+		}
 		case 0xE000: /* 0xEXZZ -- where ZZ is either 0x9E or 0xA1 */
 			if ( (opcode & 0x00FF) == 0x009E ) { /* Skip the next instruction if the key stored in VX is pressed */
 				if (chip->keypad[V[x]] == 1) {
@@ -262,12 +286,14 @@ void emulateCycle(Chip8 *chip) {
 					break;
 
 				case 0x0029: /* Set index_reg to the location of the sprite for the character in VX */
-					/*TODO*/
+					chip->index_reg = (V[x] * 5) % 80;
 					pc += 2;
 					break;
 
 				case 0x0033: /* Store BCD representation of VX in memory locations index_reg, index_reg+1 and index_reg+2 */
-					/*TODO*/
+					memory[chip->index_reg] = V[x] / 100;
+					memory[chip->index_reg+1] = (V[x] / 10) % 10;
+					memory[chip->index_reg+2] = (V[x] % 100) % 10;
 					pc += 2;
 					break;
 

@@ -1,4 +1,9 @@
+#define WIDTH 64
+#define HEIGHT 32
+
 #include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
 
 /* short: 2 Bytes */
 /* char:  1 Byte  */
@@ -9,7 +14,8 @@ typedef struct chip8 {
 	unsigned char V[16]; 		/* Indexes from 0 to 14 (V0, V1, ..., VE):  General purpose registers; index 15 (VF): carry flag */
 	unsigned short index_reg;	/* Index register */
 	unsigned short pc;		/* Program Counter */
-	unsigned char gfx[64*32];	/* Graphics matrix - Black and white screen of 2048 pixels (64x32) */
+	unsigned char gfx[WIDTH*HEIGHT];	/* Graphics matrix - Black and white screen of 2048 pixels (64x32) */
+	unsigned char update_screen;	/* If this is true (1), update the screen */
 
 	/* Interupts and hardware registers */
 	unsigned char delay_timer;
