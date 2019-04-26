@@ -46,22 +46,24 @@ void emulateCycle(Chip8 *chip) {
 
 	unsigned char x = (opcode & 0x0F00 >> 8);
 	unsigned char y = (opcode & 0x00F0 >> 4);
+	unsigned char loop = 0;
 	/* Decode opcode of the general form 0xZNNN - except when noted otherwise */
         switch (opcode & 0xF000) {
 
 		case 0x0000: /* 3 possibilities */
 			switch (opcode & 0x00FF) {
-				case 0x00E0: /* Clears the screen (0x00E0) */
+				case 0x00E0: /* Clear the screen (0x00E0) */
+					/*TODO*/
 					printf("Should clear the screen\n");
 					pc += 2;
 					break;
 
-				case 0x00EE: /* Returns from a subroutine */
+				case 0x00EE: /* Return from a subroutine */
 					/*TODO*/
 					pc += 2;
 					break;
 
-				default: /* Calls RCA 1802 program at address NNN*/ 
+				default: /* Call RCA 1802 program at address NNN*/ 
 					printf("Calling RCA 1802 program at 0x%x\n", opcode & 0x0FFF);
 					pc += 2;
 			}
@@ -71,7 +73,7 @@ void emulateCycle(Chip8 *chip) {
 			pc = opcode & 0x0FFF;
 			break;
 
-		case 0x2000: /* Calls subroutine at NNN */
+		case 0x2000: /* Call subroutine at NNN */
 			/*TODO*/
 			break;
 
@@ -156,7 +158,7 @@ void emulateCycle(Chip8 *chip) {
 					pc += 2;
 					break;
 
-				case 0x0006: /* VX = VX >> 1 and stores the least significant bit of VX in VF */
+				case 0x0006: /* VX = VX >> 1 and store the least significant bit of VX in VF */
 					V[0xF] = V[x] & 0x01;
 					V[x] >>= 1;
 					pc += 2;
@@ -172,7 +174,7 @@ void emulateCycle(Chip8 *chip) {
 					pc += 2;
 					break;
 
-				case 0x000E: /* VX = VX << 1 and stores the least significant bit of VX in VF */
+				case 0x000E: /* VX = VX << 1 and store the least significant bit of VX in VF */
 					V[0xF] = V[x] & 0x01;
 					V[x] <<= 1;
 					pc += 2;
@@ -209,10 +211,83 @@ void emulateCycle(Chip8 *chip) {
 			pc += 2;
 			break;
 
-		case 0xD000: /* 0xDXYN -- draw(VX, VY, N): draws a sprite at (VX, VY) with 8px wide and Npx tall; each row of 8px is read as bit-coded starting from memory location index_reg */
+		case 0xD000: /* 0xDXYN -- draw(VX, VY, N): draw a sprite at (VX, VY) with 8px wide and Npx tall; each row of 8px is read as bit-coded starting from memory location index_reg */
 			/*TODO*/
 			pc += 2;
 			break;
+
+		case 0xE000: /* 0xEXZZ -- where ZZ is either 0x9E or 0xA1 */
+			if ( (opcode & 0x00FF) == 0x009E ) { /* Skip the next instruction if the key stored in VX is pressed */
+				if (chip->keypad[V[x]] == 1) {
+					pc += 4;
+				} else {
+					pc+= 2;
+				}
+			} else if  ( (opcode & 0x00FF) == 0x00A1 ) { /* Skip the next instruction if the key stored in VX is not pressed */
+				if (chip->keypad[V[x]] == 0) {
+					pc += 4;
+				} else {
+					pc += 2;
+				}
+			} else {
+				printf("Unknown opcode: 0x%x\n", opcode);
+			}
+			break;
+		
+		case 0xF000: /* 9 options of the form 0xFXZZ -- where ZZ defines the different cases */
+			switch (opcode & 0x00FF) {
+				case 0x0007: /* Set VX to the value of delay_timer */
+					V[x] = chip->delay_timer;
+					pc += 2;
+					break;
+
+				case 0x000A: /* Wait for a key press, then store its value in VX */
+					scanf( "%c" , &(V[x]) );
+					pc += 2;
+					break;
+
+				case 0x0015: /* Set delay_timer to VX */
+					chip->delay_timer = V[x];
+					pc += 2;
+					break;
+				
+				case 0x0018: /* Set sound_timer to VX */
+					chip->sound_timer = V[x];
+					pc += 2;
+					break;
+
+				case 0x001E: /* index_reg += VX */
+					chip->index_reg += V[x];
+					pc += 2;
+					break;
+
+				case 0x0029: /* Set index_reg to the location of the sprite for the character in VX */
+					/*TODO*/
+					pc += 2;
+					break;
+
+				case 0x0033: /* Store BCD representation of VX in memory locations index_reg, index_reg+1 and index_reg+2 */
+					/*TODO*/
+					pc += 2;
+					break;
+
+				case 0x0055: /* Store registers V0 through VX in memory starting at location index_reg */
+					for (loop = 0; loop <= x; loop++) {
+						memory[chip->index_reg + loop] = V[loop];
+					}
+					pc += 2;
+					break;
+
+				case 0x0065: /* Fill V0 to VX with values from memory starting at addr index_reg */
+					for (loop = 0; loop <= x; loop++) {
+						V[loop] = memory[chip->index_reg + loop];
+					}
+					pc += 2;
+					break;
+			}
+			break;
+	
+
 		default:
 			printf("Unknown opcode: 0x%x\n", opcode);
 
