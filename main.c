@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 	/* GLFW window creation */ 
-	GLFWwindow *window = glfwCreateWindow(800,600, "OpenGL Test",NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(800,600, "chip8-emu",NULL, NULL);
 	if (window == NULL) {
 		printf("Failed to create GLFW window\n");
 		glfwTerminate();
