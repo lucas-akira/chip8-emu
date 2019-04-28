@@ -28,16 +28,20 @@ void initialize(Chip8 *chip) {
 	
 	/* Clear display */
 	unsigned int i = 0;
-	for (i = 0; i < WIDTH*HEIGHT;i++) {
-		chip->gfx[i] = 1;
+	for (i = 0; i < WIDTH*HEIGHT; i++) {
+		chip->gfx[i] = 0;
+	}
+	
+	/* Clear stack and registers */
+	for (i = 0; i < 16; i++) {
+		chip->stack[i] = 0;
+		chip->V[i] = 0;
 	}
 
-	/*TODO*/
-	/*
-	 * Clear stack
-	 * Clear registers V0-VF
-	 * Clear memory
-	 * */
+	/* Clear memory */
+	for (i = 0; i < 4096; i++) {
+		chip->memory[i] = 0;
+	}
 	
 	/* Load fontset */
 	for (i = 0; i < 80; i++) {
@@ -45,14 +49,28 @@ void initialize(Chip8 *chip) {
 	}
 
 	/* Reset timers */
+	chip->delay_timer = 0xFF;
+	chip->sound_timer = 0xFF;
 }
 
-void loadProgram(unsigned char memory[4096], int program_size, unsigned char buffer[]) {
-	unsigned int i;
-	/* Program is loaded starting at address 0x200 (512 in decimal) */
-	for (i = 0; i < program_size && i < 3584; i++) {
-	       memory[i + 0x200] = buffer[i];	
+void loadProgram(unsigned char memory[4096], char *filename) {
+	
+	FILE *fp = fopen(filename, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "Program %s not found!\n", filename);
+		return;
 	}
+	unsigned int i = 0;
+	unsigned char current_byte = 0;
+	
+	/* Program is loaded starting at address 0x200 (512 in decimal) */
+	while (fread(&current_byte, sizeof(char), 1, fp) && i < 3584) {
+		memory[i + 0x200] = current_byte;
+		i++;
+	}
+
+	fclose(fp);
+	fp = NULL;
 	printf("Program loaded into memory\n");
 }
 
@@ -68,7 +86,7 @@ void emulateCycle(Chip8 *chip) {
 
 	unsigned char x = (opcode & 0x0F00 >> 8);
 	unsigned char y = (opcode & 0x00F0 >> 4);
-	unsigned char loop = 0;
+	unsigned int loop = 0;
 	/* Decode opcode of the general form 0xZNNN - except when noted otherwise */
         switch (opcode & 0xF000) {
 
@@ -232,7 +250,6 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0xC000: /* 0xCXNN -- VX = rand() & NN */
-			/*TODO rand*/
 			srand(time(NULL));
 			V[x] = (rand() % 256) & (opcode & 0x00FF);
 			pc += 2;

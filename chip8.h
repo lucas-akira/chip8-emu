@@ -34,3 +34,5 @@ typedef struct chip8 {
 extern unsigned char chip8_fontset[80];
 
 void initialize(Chip8 *chip8);
+void loadProgram(unsigned char memory[4096], char *filename);
+void emulateCycle(Chip8 *chip);

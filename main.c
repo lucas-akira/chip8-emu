@@ -88,10 +88,17 @@ void processInput(GLFWwindow *window) {
 		glfwSetWindowShouldClose(window, 1);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	
 	Chip8 chip8;
 	initialize(&chip8);
+	if (argc == 1) {
+		printf("Usage: %s <filename>\n", argv[0]);
+		return 0;
+	}
+	
+ 	loadProgram(chip8.memory, argv[1]);	
+
 	/*
 	printf("%d \n", chip8.pc);
 	printf("%d \n",chip8.opcode);
@@ -232,10 +239,16 @@ int main() {
 	
 	/* Render loop */
 	while(!glfwWindowShouldClose(window)) {
-			
+		
+		emulateCycle(&chip8);		
+		if (chip8.update_screen) {
+			indices_len = createVertices(chip8.gfx, &indices);
+			chip8.update_screen = 0;
+		}
+
 		/* Rendering */
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_len, indices, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_len, indices, GL_DYNAMIC_DRAW);
 
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
