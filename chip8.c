@@ -26,6 +26,8 @@ void initialize(Chip8 *chip) {
 	chip->index_reg = 0;	/* Reset index register */
 	chip->sp = 0;		/* Reset stack pointer */
 	
+	srand(time(NULL));
+	
 	/* Clear display */
 	unsigned int i = 0;
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
@@ -84,8 +86,8 @@ void emulateCycle(Chip8 *chip) {
 	/* Fetch opcode */
 	opcode = memory[pc] << 8 | memory[pc + 1];
 
-	unsigned char x = (opcode & 0x0F00 >> 8);
-	unsigned char y = (opcode & 0x00F0 >> 4);
+	unsigned char x = ( (opcode & 0x0F00) >> 8 );
+	unsigned char y = ( (opcode & 0x00F0) >> 4 );
 	unsigned int loop = 0;
 	/* Decode opcode of the general form 0xZNNN - except when noted otherwise */
         switch (opcode & 0xF000) {
@@ -96,11 +98,17 @@ void emulateCycle(Chip8 *chip) {
 					for (loop = 0; loop < WIDTH * HEIGHT; loop++) {
 						chip->gfx[loop] = 0;
 					}
+					chip->update_screen = 1;
 					pc += 2;
 					break;
 
 				case 0x00EE: /* Return from a subroutine */
-					pc = chip->stack[chip->sp];
+					if (chip->sp == 0) {
+						printf("Stack is empty!\n");
+					} else {
+						(chip->sp)--;
+						pc = chip->stack[chip->sp];
+					}
 					pc += 2;
 					break;
 
@@ -250,7 +258,6 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0xC000: /* 0xCXNN -- VX = rand() & NN */
-			srand(time(NULL));
 			V[x] = (rand() % 256) & (opcode & 0x00FF);
 			pc += 2;
 			break;
@@ -267,8 +274,8 @@ void emulateCycle(Chip8 *chip) {
 				for (xline = 0; xline < 8; xline++) { /* For each pixel in the row */
 
 					if ( (sprite_row & (0x80 >> xline)) != 0 ) { /* Check if the current evaluated pixel is set to 1 */
-						unsigned char x_pos = (x + xline) % WIDTH;
-						unsigned char y_pos = (y + yline) % HEIGHT;
+						unsigned char x_pos = (V[x] + xline) % WIDTH;
+						unsigned char y_pos = (V[y] + yline) % HEIGHT;
 						if (chip->gfx[x_pos + (y_pos * WIDTH)] == 1 ) /* Check if the pixel on display is set to 1 */
 							V[0xF] = 1; /* Pixel collision occured */
 						chip->gfx[x_pos + (y_pos * WIDTH)] ^= 1;
@@ -370,8 +377,7 @@ void emulateCycle(Chip8 *chip) {
 		--(chip->sound_timer);
 	}
 
-	/* Update struct variables */
+	/* Update struct variable */
 	chip->pc = pc;
-	chip->opcode = opcode;
 }
 
