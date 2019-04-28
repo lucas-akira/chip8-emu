@@ -10,9 +10,46 @@ From Wikipedia: CHIP-8 is an interpreted programming language developed by Josep
 
 It is considered one of the easiest emulation projects to undertake, given its simplicity.
 
+## Input
+CHIP-8 uses a hexadecimal keyboard:
+
+| **1** | **2** | **3** | **C** |
+|---|---|---|---|
+| **4** | **5** | **6** | **D** |
+| **7** | **8** | **9** | **E** |
+| **A** | **0** | **B** | **F** |
+
+Which this emulator maps to:
+
+#### QWERTY
+| **1** | **2** | **3** | **4** |
+|---|---|---|---|
+| **Q** | **W** | **E** | **R** |
+| **A** | **S** | **D** | **F** |
+| **Z** | **X** | **C** | **V** |
+
+or
+
+#### AZERTY
+| **1** | **2** | **3** | **4** |
+|---|---|---|---|
+| **A** | **Z** | **E** | **R** |
+| **Q** | **S** | **D** | **F** |
+| **W** | **X** | **C** | **V** |
+
+Default combination on startup is QWERTY. Press TAB to change between QWERTY and AZERTY, if needed.
+
+
 ## Current state
 
-Right now the emulator can boot some ROMs successfully, but there is no input support yet.
+Right now the emulator can boot some ROMs successfully, like Pong (1 player) and Tetris. Some programs like Tic-tac-toe cause freezes.
+
+## TODO:
+* Fix freezes on some ROMs;
+* Clear and organize code;
+* Implement sound effect (beep);
+* Optimize code to run better on higher resolutions.
+
 
 ## Used references
 * https://en.wikipedia.org/wiki/CHIP-8
