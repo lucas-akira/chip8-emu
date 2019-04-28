@@ -1,4 +1,6 @@
 # chip8-emu
+![screenshot1](/imgs/screenshot1.png)
+![screenshot2](/imgs/screenshot2.png)
 
 CHIP-8 emulator written in C, using OpenGL.
 
