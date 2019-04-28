@@ -25,7 +25,8 @@ void initialize(Chip8 *chip) {
 	chip->opcode = 0;	/* Reset current opcode */
 	chip->index_reg = 0;	/* Reset index register */
 	chip->sp = 0;		/* Reset stack pointer */
-	
+	chip->key_layout = 0;	/* QWERTY is the default keyboard */
+
 	srand(time(NULL));
 	
 	/* Clear display */

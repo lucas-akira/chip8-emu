@@ -28,7 +28,8 @@ typedef struct chip8 {
 	unsigned short sp;		/* Stack Pointer */
 
 	/* Hexadecimal keypad */
-	unsigned char keypad[16];	
+	unsigned char keypad[16];
+	unsigned char key_layout; /* 0: QWERTY; 1: AZERTY */
 } Chip8;
 
 extern unsigned char chip8_fontset[80];

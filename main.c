@@ -1,6 +1,6 @@
 #include "chip8.h"
 
-static const char keycodes[] = {'0','1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+static const char keycodes[2][16] = {{'x','1', '2', '3', 'q', 'w', 'e', 'a', 's', 'd', 'z', 'c', '4', 'r', 'f', 'v'}, {'x','1','2','3','a','z','e','q','s','d','w','c','4','r','f','v'}};
 
 const char *vertexShaderSource = 
 	"#version 330 core\n"
@@ -54,16 +54,24 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	const char *key_name = glfwGetKeyName(key, scancode);
 	int i;
-	
+	Chip8 *chip_ref = glfwGetWindowUserPointer(window);
+
+	if (key == GLFW_KEY_TAB && action == GLFW_RELEASE) {
+		if (chip_ref == NULL)
+			return;
+		/* Tab key: change current layout to QWERTY or AZERTY */	
+		chip_ref->key_layout = !(chip_ref->key_layout);
+	}
+
+
 	if ((action == GLFW_PRESS || action == GLFW_RELEASE) && key_name != NULL) {
 		
 		/* Check which key was pressed or released */
 		for (i = 0; i < 16; i++) {
-			if (keycodes[i] == key_name[0]) 
+			if (keycodes[chip_ref->key_layout][i] == key_name[0]) 
 				break;
 		}
 		if (i != 16) {
-			Chip8 *chip_ref = glfwGetWindowUserPointer(window);
 			if (chip_ref == NULL) {
 				return;
 			}
@@ -123,7 +131,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 	/* GLFW window creation */ 
-	GLFWwindow *window = glfwCreateWindow(250,250, "OpenGL Test",NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(800,600, "OpenGL Test",NULL, NULL);
 	if (window == NULL) {
 		printf("Failed to create GLFW window\n");
 		glfwTerminate();
@@ -236,10 +244,10 @@ int main(int argc, char *argv[]) {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2* sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0); /* Enable the vertex attribute */
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	
+
 	/* Render loop */
 	while(!glfwWindowShouldClose(window)) {
-		
+
 		emulateCycle(&chip8);		
 		if (chip8.update_screen) {
 			indices_len = createVertices(chip8.gfx, &indices);
@@ -251,7 +259,7 @@ int main(int argc, char *argv[]) {
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_len, indices, GL_DYNAMIC_DRAW);
 
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT);
 		
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
