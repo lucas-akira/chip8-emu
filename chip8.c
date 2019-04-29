@@ -56,12 +56,12 @@ void initialize(Chip8 *chip) {
 	chip->sound_timer = 0xFF;
 }
 
-void loadProgram(unsigned char memory[4096], char *filename) {
+int loadProgram(unsigned char memory[4096], char *filename) {
 	
 	FILE *fp = fopen(filename, "r");
 	if (fp == NULL) {
 		fprintf(stderr, "Program %s not found!\n", filename);
-		return;
+		return 0;
 	}
 	unsigned int i = 0;
 	unsigned char current_byte = 0;
@@ -75,17 +75,19 @@ void loadProgram(unsigned char memory[4096], char *filename) {
 	fclose(fp);
 	fp = NULL;
 	printf("Program loaded into memory\n");
+	return 1;
 }
 
 void emulateCycle(Chip8 *chip) {
 	unsigned short pc = chip->pc; 
-	unsigned short opcode = chip->opcode;
+	unsigned short opcode;
 	
 	unsigned char *V = chip->V;	
 	unsigned char *memory = chip->memory;	
 	
 	/* Fetch opcode */
-	opcode = memory[pc] << 8 | memory[pc + 1];
+	chip->opcode = memory[pc] << 8 | memory[pc + 1];
+	opcode = chip->opcode;
 
 	unsigned char x = ( (opcode & 0x0F00) >> 8 );
 	unsigned char y = ( (opcode & 0x00F0) >> 4 );

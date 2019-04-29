@@ -48,6 +48,8 @@ int createVertices(unsigned char gfx[WIDTH*HEIGHT], unsigned int **indices) {
 
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+	Chip8 *chip_ref = glfwGetWindowUserPointer(window);
+	chip_ref->update_screen = 1;
 	glViewport(0, 0, width, height);
 }
 
@@ -105,19 +107,9 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
- 	loadProgram(chip8.memory, argv[1]);	
-
-	/*
-	printf("%d \n", chip8.pc);
-	printf("%d \n",chip8.opcode);
-	printf("%d \n",chip8.index_reg);
-	printf("%d \n",chip8.sp);
-	*/
-	/*
-	int i;
-	for (i = 0;i < 64; i++)
-		chip8.gfx[i] = 1;
-	*/
+ 	if (!loadProgram(chip8.memory, argv[1])) {
+		return-1;
+	}	
 
 	/* GLFW Initialization and configuration */
 	glfwInit();
@@ -245,28 +237,45 @@ int main(int argc, char *argv[]) {
 	glEnableVertexAttribArray(0); /* Enable the vertex attribute */
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
+	double previousTime = glfwGetTime();
+	int frameCount = 0;
 	/* Render loop */
+	glfwSwapInterval(1);
 	while(!glfwWindowShouldClose(window)) {
 
 		emulateCycle(&chip8);		
 		if (chip8.update_screen) {
 			indices_len = createVertices(chip8.gfx, &indices);
 			chip8.update_screen = 0;
-		}
 
-		/* Rendering */
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_len, indices, GL_DYNAMIC_DRAW);
+ 			/* Measure fps */
+    			double currentTime = glfwGetTime();
+    			frameCount++;
+    			/* If a second has passed, display fps */
+    			if ( currentTime - previousTime >= 1.0 ) {
+		        	char title [256];
+				title [255] = '\0';
 
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+				snprintf ( title, 255,"chip8-emu [FPS: %3.2f]", (float)frameCount );
+				glfwSetWindowTitle (window, title);
+				frameCount = 0;
+        			previousTime = currentTime;
+    			}
+
+			/* Rendering */
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_len, indices, GL_DYNAMIC_DRAW);
+	
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
 		
-		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, indices_len, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+			glUseProgram(shaderProgram);
+			glBindVertexArray(VAO);
+			glDrawElements(GL_TRIANGLES, indices_len, GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
 
-		glfwSwapBuffers(window);
+			glfwSwapBuffers(window);
+		}
 		glfwPollEvents();
 	}
 	glDeleteVertexArrays(1, &VAO);
