@@ -48,7 +48,8 @@ Right now the emulator can boot some ROMs successfully, like Pong (1 player) and
 * Fix freezes on some ROMs;
 * Clear and organize code;
 * Implement sound effect (beep);
-* Optimize code to run better on higher resolutions.
+* ~~Optimize code to run better on higher resolutions.~~ *Done. While maximized some games reach 290 FPS.*
+* Make an FPS cap to slow down the programs.
 
 
 ## Used references
