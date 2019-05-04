@@ -45,6 +45,11 @@ void initialize(Chip8 *chip) {
 	for (i = 0; i < 4096; i++) {
 		chip->memory[i] = 0;
 	}
+
+	/* Clear keypad */
+	for (i = 0; i < 16; i++) {
+		chip->keypad[i] = 0;
+	}
 	
 	/* Load fontset */
 	for (i = 0; i < 80; i++) {

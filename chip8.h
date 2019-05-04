@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#include "glad/glad.h"
-#include <GLFW/glfw3.h>
 
 /* short: 2 Bytes */
 /* char:  1 Byte  */
