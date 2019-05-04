@@ -1,4 +1,4 @@
-gcc main.c chip8.c glad.c -o chip8 -Wall -g -lGL -lglfw3 -ldl -lX11 -lpthread -lm
+gcc main.c gui.c chip8.c glad.c -o chip8 -Wall -g -lGL -lglfw3 -ldl -lX11 -lpthread -lm
 
 Possible arguments to use:
 -lglfw3 -lGL -lX11 -lpthread -lXrandr -lXi -ldl

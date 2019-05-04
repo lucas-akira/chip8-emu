@@ -50,7 +50,13 @@ int createVertices(unsigned char gfx[WIDTH*HEIGHT], unsigned int **indices) {
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 	Chip8 *chip_ref = glfwGetWindowUserPointer(window);
 	chip_ref->update_screen = 1;
-	glViewport(0, 0, width, height);
+	if (height >= width/2) {
+		glViewport(0, (height/2) - (width/4), width, width/2);
+		glScissor(0,(height/2)- (width/4), width, width/2);
+	} else {
+		glViewport(0,0, width, height);
+		glScissor(0,0, width, height);
+	}
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -187,10 +193,8 @@ int runGUI(Chip8 *chip8) {
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-	/* Data to send */
-	/******************************************************/
-	
 	/* Calculate the normalized coordinates of each vertex */
+	/******************************************************/
 	int y, x;
 	int number_vertices = (WIDTH+1)*(HEIGHT+1);
 	float width = (float)WIDTH;
@@ -199,15 +203,16 @@ int runGUI(Chip8 *chip8) {
 	for (y = 0; y < HEIGHT+1; y++) {
 		for(x = 0; x < WIDTH+1; x++) {
 			points[2*(WIDTH+1)*y + 2*x] = ( -1.0f + x * 2.0f / width );
-			points[2*(WIDTH+1)*y + 2*x + 1] = ( (height/width) - y * 2.0f / width ); /* Only works if height <= width */
+			points[2*(WIDTH+1)*y + 2*x + 1] = ( 1.0f  - y * 2.0f / height ); /* Only works if height <= width */
 		}
 	}
 	unsigned int indices_len;
 	unsigned int *indices = NULL;
+	/* Data to send */
 	indices_len = createVertices(chip8->gfx, &indices);
 	/******************************************************/
 
-	/* Vertex Buffer Object (VBO) and Vertex Array Object (VAO)*/
+	/* Vertex Buffer Object (VBO), Vertex Array Object (VAO) and Element Buffer Object (EBO) */
 	unsigned int VBO, VAO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO); /* Generate 1 Buffer object and store its ID in VBO */
@@ -215,30 +220,41 @@ int runGUI(Chip8 *chip8) {
 	
 	glBindVertexArray(VAO); /* Bind VAO first */
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); /* Bind the vertex buffer to the GL_ARRAY_BUFFER target (type of a vertex buffer object) */
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW); /* Load data into the buffer's memory */
+	/* Bind the vertex buffer to the GL_ARRAY_BUFFER target (type of a vertex buffer object) */
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	
+	/* Load data into the buffer's memory */
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW); 
+
+	/* Same with EBO */
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices_len, indices, GL_DYNAMIC_DRAW);
 
 	/* Telling OpenGL how to interpret the data */
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2* sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0); /* Enable the vertex attribute */
+
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 	double previousTime = glfwGetTime();
 	unsigned int frameCount = 0;
 	unsigned int cycleCount = 0; 
+	
 	/* Enable V-Sync */
 	glfwSwapInterval(1);
 
 	/*glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);*/
-
+	
+	/* Initial settings */
+	glViewport(0, 100, 800, 400);
+	glScissor(0,100, 800, 400);
+	
 	/* Render loop */
 	while(!glfwWindowShouldClose(window)) {
 
 		emulateCycle(chip8);
-		cycleCount++;		
+		cycleCount++;
+		/* Wait at least 15 cycles before updating the screen - if running at 60 fps, we are executing at least 900 operations per second */		
 		if (chip8->update_screen && cycleCount >= 15) {
 			indices_len = createVertices(chip8->gfx, &indices);
 			chip8->update_screen = 0;
@@ -258,6 +274,12 @@ int runGUI(Chip8 *chip8) {
         			previousTime = currentTime;
     			}
 
+			/* Draw background */
+			glDisable(GL_SCISSOR_TEST);
+			glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glEnable(GL_SCISSOR_TEST);
+
 			/* Rendering */
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_len, indices, GL_DYNAMIC_DRAW);
@@ -274,6 +296,8 @@ int runGUI(Chip8 *chip8) {
 		}
 		glfwPollEvents();
 	}
+
+	/* Clear allocated memory */
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	
