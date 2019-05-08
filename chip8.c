@@ -26,6 +26,7 @@ void initialize(Chip8 *chip) {
 	chip->index_reg = 0;	/* Reset index register */
 	chip->sp = 0;		/* Reset stack pointer */
 	chip->key_layout = 0;	/* QWERTY is the default keyboard */
+	chip->debug = 1;
 
 	srand(time(NULL));
 	
@@ -97,12 +98,17 @@ void emulateCycle(Chip8 *chip) {
 	unsigned char x = ( (opcode & 0x0F00) >> 8 );
 	unsigned char y = ( (opcode & 0x00F0) >> 4 );
 	unsigned int loop = 0;
+
 	/* Decode opcode of the general form 0xZNNN - except when noted otherwise */
         switch (opcode & 0xF000) {
 
 		case 0x0000: /* 3 possibilities */
 			switch (opcode & 0x00FF) {
-				case 0x00E0: /* Clear the screen (0x00E0) */
+				case 0x00E0: /* CLS -- Clear the screen (0x00E0) */
+					if (chip->debug) {
+						printf("CLS\n");
+					}
+
 					for (loop = 0; loop < WIDTH * HEIGHT; loop++) {
 						chip->gfx[loop] = 0;
 					}
@@ -110,7 +116,11 @@ void emulateCycle(Chip8 *chip) {
 					pc += 2;
 					break;
 
-				case 0x00EE: /* Return from a subroutine */
+				case 0x00EE: /* RET -- Return from a subroutine */
+					if (chip->debug) {
+						printf("RET\n");
+					}
+
 					if (chip->sp == 0) {
 						printf("Stack is empty!\n");
 					} else {
@@ -121,22 +131,31 @@ void emulateCycle(Chip8 *chip) {
 					break;
 
 				default: /* Call RCA 1802 program at address NNN*/ 
-					printf("Calling RCA 1802 program at 0x%x\n", opcode & 0x0FFF);
+					printf("[Error] SYS(0x%x) not implemented!\n", opcode & 0x0FFF);
 					pc += 2;
 			}
 			break;
 
 		case 0x1000: /* goto NNN */
+			if (chip->debug) {
+				printf("JP 0x%x\n", opcode & 0x0FFF);
+			}
 			pc = opcode & 0x0FFF;
 			break;
 
 		case 0x2000: /* Call subroutine at NNN */
+			if (chip->debug) {
+				printf("CALL 0x%x\n", opcode & 0x0FFF);
+			}
 			chip->stack[chip->sp] = pc;
 			(chip->sp)++;
 			pc = opcode & 0x0FFF;
 			break;
 
 		case 0x3000: /* 0x3XNN -- if (VX == NN): skip next instruction */
+			if (chip->debug) {
+				printf("SE V%x, %x\n", x, opcode & 0x00FF);
+			}
 			if (V[x] == (opcode & 0x00FF) ) {
 				pc += 4;
 			} else {
@@ -145,6 +164,9 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0x4000: /* 0x4XNN -- if (VX != NN): skip next instruction */
+			if (chip->debug) {
+				printf("SNE V%x, %x\n", x, opcode & 0x00FF);
+			}
 			if (V[x] != (opcode & 0x00FF) ) {
 				pc += 4;
 			} else {
@@ -153,6 +175,9 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0x5000: /* 0x5XY0 -- if (VX == VY): skip next instruction */
+			if (chip->debug) {
+				printf("SE V%x, V%x\n", x, y);
+			}
 			
 			if ( (opcode & 0x000F) == 0 ) {
 				if (V[x] == V[y] ) {
@@ -166,11 +191,17 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0x6000: /* 0x6XNN -- VX = NN */
+			if (chip->debug) {
+				printf("LD V%x, %x\n", x, opcode & 0x00FF);
+			}
 			V[x] = (opcode & 0x00FF);
 			pc += 2;
 			break;
 
 		case 0x7000: /* 0x7XNN -- VX += NN  (Carry flag is not changed) */
+			if (chip->debug) {
+				printf("ADD V%x, %x\n", x, opcode & 0x00FF);
+			}
 			V[x] += (opcode & 0x00FF);
 			pc += 2;
 			break;
@@ -178,26 +209,41 @@ void emulateCycle(Chip8 *chip) {
 		case 0x8000: /* 9 possibilities of the form 0x8XYZ - where Z defines the different cases */
 			switch (opcode & 0x000F) {
 				case 0x0000: /* VX = VY */
+					if (chip->debug) {
+						printf("LD V%x, V%x\n", x, y);
+					}
 					V[x] = V[y];
 					pc += 2;
 					break;
 
 				case 0x0001: /* VX = VX | VY */
+					if (chip->debug) {
+						printf("OR V%x, V%x\n", x, y);
+					}
 					V[x] |= V[y];
 					pc += 2;
 					break;
 
 				case 0x0002: /* VX = VX & VY */
+					if (chip->debug) {
+						printf("AND V%x, V%x\n", x, y);
+					}
 					V[x] &= V[y];
 					pc += 2;
 					break;
 
 				case 0x0003: /* VX = VX ^ VY */
+					if (chip->debug) {
+						printf("XOR V%x, V%x\n", x, y);
+					}
 					V[x] ^= V[y];
 					pc += 2;
 					break;
 
 				case 0x0004: /* VX += VY (VF is set to 1 when there is a carry, set to 0 otherwise) */
+					if (chip->debug) {
+						printf("ADD V%x, V%x\n", x, y);
+					}
 					if (V[y] > 0xFF - V[x]) {
 						V[0xF] = 1;
 					} else {
@@ -208,6 +254,9 @@ void emulateCycle(Chip8 *chip) {
 					break;
 
 				case 0x0005: /* VX -= VY (VF is set to 0 when there is a borrow, set to 1 otherwise) */	
+					if (chip->debug) {
+						printf("SUB V%x, V%x\n", x, y);
+					}
 					if (V[x] > V[y]) {
 						V[0xF] = 1;
 					} else {
@@ -218,12 +267,18 @@ void emulateCycle(Chip8 *chip) {
 					break;
 
 				case 0x0006: /* VX = VX >> 1 and store the least significant bit of VX in VF */
+					if (chip->debug) {
+						printf("SHR V%x\n", x);
+					}
 					V[0xF] = V[x] & 0x01;
 					V[x] >>= 1;
 					pc += 2;
 					break;
 
 				case 0x0007: /* VX = VY - VX (VF is set to 0 when there is a borrow, set to 1 otherwise) */
+					if (chip->debug) {
+						printf("SUBN V%x, V%x\n", x, y);
+					}
 					if (V[y] > V[x]) {
 						V[0xF] = 1;
 					} else {
@@ -234,6 +289,9 @@ void emulateCycle(Chip8 *chip) {
 					break;
 
 				case 0x000E: /* VX = VX << 1 and store the least significant bit of VX in VF */
+					if (chip->debug) {
+						printf("SHL V%x\n", x);
+					}
 					V[0xF] = V[x] & 0x01;
 					V[x] <<= 1;
 					pc += 2;
@@ -245,6 +303,9 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0x9000: /* 0x9XY0 - if (V[x] != V[y]): skip next instruction */
+			if (chip->debug) {
+				printf("SNE V%x, V%x\n", x, y);
+			}
 			if ( (opcode & 0x000F) == 0 ) {
 				if (V[x] != V[y] ) {
 					pc += 4;
@@ -257,21 +318,33 @@ void emulateCycle(Chip8 *chip) {
 			break;
 
 		case 0xA000: /* index_reg = NNN -- Set index_reg to address NNN */
+			if (chip->debug) {
+				printf("LD I, %x\n", opcode & 0x0FFF);
+			}
 			chip->index_reg = (opcode & 0x0FFF);
 			pc += 2;
 			break;
 
 		case 0xB000: /* pc = V0 + NNN */
+			if (chip->debug) {
+				printf("JP V0, %x\n", opcode & 0x0FFF);
+			}
 			pc = V[0] + (opcode & 0x0FFF);
 			break;
 
 		case 0xC000: /* 0xCXNN -- VX = rand() & NN */
+			if (chip->debug) {
+				printf("RND V%x, %x\n", x, opcode & 0x00FF);
+			}
 			V[x] = (rand() % 256) & (opcode & 0x00FF);
 			pc += 2;
 			break;
 
 		case 0xD000: /* 0xDXYN -- draw(VX, VY, N): draw a sprite at (VX, VY) with 8px wide and Npx tall; each row of 8px is read as bit-coded starting from memory location index_reg */
 		{	
+			if (chip->debug) {
+				printf("DRW V%x, V%x, %x\n", x, y, opcode & 0x000F);
+			}
 			unsigned char height = (opcode & 0x000F);
 			unsigned char sprite_row;
 			unsigned char xline = 0, yline = 0;
@@ -296,12 +369,18 @@ void emulateCycle(Chip8 *chip) {
 		}
 		case 0xE000: /* 0xEXZZ -- where ZZ is either 0x9E or 0xA1 */
 			if ( (opcode & 0x00FF) == 0x009E ) { /* Skip the next instruction if the key stored in VX is pressed */
+				if (chip->debug) {
+					printf("SKP V%x\n", x);
+				}
 				if (chip->keypad[V[x]] == 1) {
 					pc += 4;
 				} else {
 					pc+= 2;
 				}
 			} else if  ( (opcode & 0x00FF) == 0x00A1 ) { /* Skip the next instruction if the key stored in VX is not pressed */
+				if (chip->debug) {
+					printf("SKNP V%x\n", x);
+				}
 				if (chip->keypad[V[x]] == 0) {
 					pc += 4;
 				} else {
@@ -315,36 +394,61 @@ void emulateCycle(Chip8 *chip) {
 		case 0xF000: /* 9 options of the form 0xFXZZ -- where ZZ defines the different cases */
 			switch (opcode & 0x00FF) {
 				case 0x0007: /* Set VX to the value of delay_timer */
+					if (chip->debug) {
+						printf("LD V%x, DT\n", x);
+					}
 					V[x] = chip->delay_timer;
 					pc += 2;
 					break;
 
 				case 0x000A: /* Wait for a key press, then store its value in VX */
-					scanf( "%c" , &(V[x]) );
-					pc += 2;
+					if (chip->debug) {
+						printf("LD V%x, K\n", x);
+					}
+					for (loop = 0; loop < 16; loop++) {
+						if (chip->keypad[loop] == 1) {
+							V[x] = loop;
+							pc += 2;
+						}
+					}
 					break;
 
 				case 0x0015: /* Set delay_timer to VX */
+					if (chip->debug) {
+						printf("LD DT, V%x\n", x);
+					}
 					chip->delay_timer = V[x];
 					pc += 2;
 					break;
 				
 				case 0x0018: /* Set sound_timer to VX */
+					if (chip->debug) {
+						printf("LD ST, V%x\n", x);
+					}
 					chip->sound_timer = V[x];
 					pc += 2;
 					break;
 
 				case 0x001E: /* index_reg += VX */
+					if (chip->debug) {
+						printf("ADD I, V%x\n", x);
+					}
 					chip->index_reg += V[x];
 					pc += 2;
 					break;
 
 				case 0x0029: /* Set index_reg to the location of the sprite for the character in VX */
+					if (chip->debug) {
+						printf("LD F, V%x\n", x);
+					}
 					chip->index_reg = (V[x] * 5) % 80;
 					pc += 2;
 					break;
 
 				case 0x0033: /* Store BCD representation of VX in memory locations index_reg, index_reg+1 and index_reg+2 */
+					if (chip->debug) {
+						printf("LD B,  V%x\n", x);
+					}
 					memory[chip->index_reg] = V[x] / 100;
 					memory[chip->index_reg+1] = (V[x] / 10) % 10;
 					memory[chip->index_reg+2] = (V[x] % 100) % 10;
@@ -352,6 +456,9 @@ void emulateCycle(Chip8 *chip) {
 					break;
 
 				case 0x0055: /* Store registers V0 through VX in memory starting at location index_reg */
+					if (chip->debug) {
+						printf("LD [I], V%x\n", x);
+					}
 					for (loop = 0; loop <= x; loop++) {
 						memory[chip->index_reg + loop] = V[loop];
 					}
@@ -359,6 +466,9 @@ void emulateCycle(Chip8 *chip) {
 					break;
 
 				case 0x0065: /* Fill V0 to VX with values from memory starting at addr index_reg */
+					if (chip->debug) {
+						printf("LD V%x, [I]\n", x);
+					}
 					for (loop = 0; loop <= x; loop++) {
 						V[loop] = memory[chip->index_reg + loop];
 					}
@@ -380,7 +490,7 @@ void emulateCycle(Chip8 *chip) {
 
 	if (chip->sound_timer > 0) {
 		if (chip->sound_timer == 1) {
-			printf("BEEP\n");
+			//printf("BEEP\n");
 		}
 		--(chip->sound_timer);
 	}
