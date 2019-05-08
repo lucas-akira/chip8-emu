@@ -42,12 +42,12 @@ Default combination on startup is QWERTY. Press TAB to change between QWERTY and
 
 ## Current state
 
-Right now the emulator can boot some ROMs successfully, like Pong (1 player) and Tetris. Some programs like Tic-tac-toe cause freezes.
+Right now the emulator can boot some ROMs successfully, like Pong (1 player), Tetris, Tic-tac-toe and Breakout. Some demos and programs don't execute correctly (like the clock by Bill Fisher). 
 
 ## TODO:
 * ~~Fix freezes on some ROMs;~~ *Done. This was due to a wrong implementation of the 0xFX0A opcode.*
 * Clear and organize code; (*Partially done*)
-* Implement sound effect (beep);
+* Implement sound effect (beep) and delay timer;
 * ~~Optimize code to run better on higher resolutions.~~ *Done. While maximized some games reach 290 FPS.*
 * ~~Make an FPS cap to slow down the programs.~~ *Program runs at 60 FPS with updated graphics driver.*
 
