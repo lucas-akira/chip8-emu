@@ -16,7 +16,7 @@ typedef struct chip8 {
 	unsigned short pc;		/* Program Counter */
 	unsigned char gfx[WIDTH*HEIGHT];	/* Graphics matrix - Black and white screen of 2048 pixels (64x32) */
 	unsigned char update_screen;	/* If this is true (1), update the screen */
-
+	
 	/* Interupts and hardware registers */
 	unsigned char delay_timer;
 	unsigned char sound_timer;
@@ -28,6 +28,9 @@ typedef struct chip8 {
 	/* Hexadecimal keypad */
 	unsigned char keypad[16];
 	unsigned char key_layout; /* 0: QWERTY; 1: AZERTY */
+
+	/* Debug flag */
+	unsigned char debug;
 } Chip8;
 
 extern unsigned char chip8_fontset[80];
